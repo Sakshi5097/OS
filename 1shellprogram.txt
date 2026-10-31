@@ -18,20 +18,17 @@ createAddressBook()
 # 2. View Address Book
 viewRecord()
 {
-    if [ -f "$FILE" ]
+    if [ ! -f "$FILE" ]
+    then
+        echo "Please create Address Book first."
+    elif [ -s "$FILE" ]
     then
         echo
         echo "Address Book Records:"
         echo "---------------------"
-
-        if [ -s "$FILE" ]
-        then
-            cat "$FILE"
-        else
-            echo "Address Book is empty."
-        fi
+        cat "$FILE"
     else
-        echo "Please create Address Book first."
+        echo "Address Book is empty."
     fi
 }
 
@@ -44,10 +41,19 @@ insertRecord()
         return
     fi
 
-    echo "Enter Last Name, First Name, Email, Phone Number:"
-    read record
+    echo "Enter Last Name:"
+    read -r lastName
 
-    echo "$record" >> "$FILE"
+    echo "Enter First Name:"
+    read -r firstName
+
+    echo "Enter Email:"
+    read -r email
+
+    echo "Enter Phone Number:"
+    read -r phone
+
+    echo "$lastName | $firstName | $email | $phone" >> "$FILE"
 
     echo "Record inserted successfully."
 }
@@ -62,21 +68,26 @@ deleteRecord()
     fi
 
     echo "Enter name or email to search:"
-    read name
+    read -r name
 
-    grep -in "$name" "$FILE"
+    grep -inF -- "$name" "$FILE"
 
     if [ $? -eq 0 ]
     then
-        echo "Enter line number of record to delete:"
-        read lineNumber
+        echo "Enter line number to delete:"
+        read -r lineNumber
 
         if [[ "$lineNumber" =~ ^[0-9]+$ ]] &&
            [ "$lineNumber" -ge 1 ] &&
            [ "$lineNumber" -le "$(wc -l < "$FILE")" ]
         then
-            sed -i "${lineNumber}d" "$FILE"
-            echo "Record deleted successfully."
+            if sed -n "${lineNumber}p" "$FILE" | grep -qiF -- "$name"
+            then
+                sed -i "${lineNumber}d" "$FILE"
+                echo "Record deleted successfully."
+            else
+                echo "Selected record does not match."
+            fi
         else
             echo "Invalid line number."
         fi
@@ -95,25 +106,41 @@ modifyRecord()
     fi
 
     echo "Enter name or email to search:"
-    read name
+    read -r name
 
-    grep -in "$name" "$FILE"
+    grep -inF -- "$name" "$FILE"
 
     if [ $? -eq 0 ]
     then
-        echo "Enter line number of record to modify:"
-        read lineNumber
+        echo "Enter line number to modify:"
+        read -r lineNumber
 
         if [[ "$lineNumber" =~ ^[0-9]+$ ]] &&
            [ "$lineNumber" -ge 1 ] &&
            [ "$lineNumber" -le "$(wc -l < "$FILE")" ]
         then
-            echo "Enter new record:"
-            read newRecord
+            if sed -n "${lineNumber}p" "$FILE" | grep -qiF -- "$name"
+            then
+                echo "Enter new Last Name:"
+                read -r lastName
 
-            sed -i "${lineNumber}s|.*|${newRecord}|" "$FILE"
+                echo "Enter new First Name:"
+                read -r firstName
 
-            echo "Record modified successfully."
+                echo "Enter new Email:"
+                read -r email
+
+                echo "Enter new Phone Number:"
+                read -r phone
+
+                newRecord="$lastName | $firstName | $email | $phone"
+
+                sed -i "${lineNumber}c\\$newRecord" "$FILE"
+
+                echo "Record modified successfully."
+            else
+                echo "Selected record does not match."
+            fi
         else
             echo "Invalid line number."
         fi
@@ -136,7 +163,7 @@ do
     echo "=========================="
 
     echo "Enter your choice:"
-    read choice
+    read -r choice
 
     case $choice in
         1) createAddressBook ;;
