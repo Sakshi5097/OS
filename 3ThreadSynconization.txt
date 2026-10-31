@@ -1,0 +1,154 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <time.h>
+
+#define BUFFER_SIZE 5
+
+typedef int buffer_item;
+
+buffer_item buffer[BUFFER_SIZE];
+
+int in = 0, out = 0;
+
+pthread_mutex_t mutex;
+sem_t full, empty;
+
+void *producer(void *param);
+void *consumer(void *param);
+
+int insert_item(buffer_item item)
+{
+    buffer[in] = item;
+    in = (in + 1) % BUFFER_SIZE;
+    return 0;
+}
+
+int remove_item(buffer_item *item)
+{
+    *item = buffer[out];
+    out = (out + 1) % BUFFER_SIZE;
+    return 0;
+}
+
+// Producer Thread
+void *producer(void *param)
+{
+    buffer_item item;
+
+    while(1)
+    {
+        sleep(rand() % 3 + 1);
+
+        item = rand() % 100;
+
+        sem_wait(&empty);
+
+        pthread_mutex_lock(&mutex);
+
+        insert_item(item);
+
+        printf("Producer produced: %d\n", item);
+        fflush(stdout);
+
+        pthread_mutex_unlock(&mutex);
+
+        sem_post(&full);
+    }
+
+    return NULL;
+}
+
+// Consumer Thread
+void *consumer(void *param)
+{
+    buffer_item item;
+
+    while(1)
+    {
+        sleep(rand() % 3 + 1);
+
+        sem_wait(&full);
+
+        pthread_mutex_lock(&mutex);
+
+        remove_item(&item);
+
+        printf("Consumer consumed: %d\n", item);
+        fflush(stdout);
+
+        pthread_mutex_unlock(&mutex);
+
+        sem_post(&empty);
+    }
+
+    return NULL;
+}
+
+// Main Function
+int main(int argc, char *argv[])
+{
+    int mainSleepTime, numProd, numCons;
+    int i;
+
+    if(argc != 4)
+    {
+        printf("Usage: ./progname time producers consumers\n");
+        return 1;
+    }
+
+    mainSleepTime = atoi(argv[1]);
+    numProd = atoi(argv[2]);
+    numCons = atoi(argv[3]);
+
+    if(mainSleepTime <= 0 || numProd <= 0 || numCons <= 0)
+    {
+        printf("Please enter positive values.\n");
+        return 1;
+    }
+
+    pthread_t *prod = malloc(numProd * sizeof(pthread_t));
+    pthread_t *cons = malloc(numCons * sizeof(pthread_t));
+
+    if(prod == NULL || cons == NULL)
+    {
+        printf("Memory allocation failed.\n");
+        free(prod);
+        free(cons);
+        return 1;
+    }
+
+    // Initialize mutex and semaphores
+    pthread_mutex_init(&mutex, NULL);
+
+    sem_init(&full, 0, 0);
+    sem_init(&empty, 0, BUFFER_SIZE);
+
+    srand(time(NULL));
+
+    // Create producer threads
+    for(i = 0; i < numProd; i++)
+    {
+        pthread_create(&prod[i], NULL, producer, NULL);
+    }
+
+    // Create consumer threads
+    for(i = 0; i < numCons; i++)
+    {
+        pthread_create(&cons[i], NULL, consumer, NULL);
+    }
+
+    // Main thread sleeps for given time
+    sleep(mainSleepTime);
+
+    printf("\nTime is over. Exiting program.\n");
+
+    free(prod);
+    free(cons);
+
+    // Terminate all threads
+    exit(0);
+}

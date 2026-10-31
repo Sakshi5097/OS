@@ -1,0 +1,120 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <ctype.h>
+
+int read_line(int fd, char *buffer, int size)
+{
+    int i = 0;
+    char ch;
+
+    while (i < size - 1) {
+        int n = read(fd, &ch, 1);
+
+        if (n <= 0)
+            break;
+
+        buffer[i++] = ch;
+
+        if (ch == '\n')
+            break;
+    }
+
+    buffer[i] = '\0';
+    return i;
+}
+
+int main()
+{
+    if (mkfifo("fifo6.txt", 0666) == -1 && errno != EEXIST) {
+        perror("mkfifo");
+        return 1;
+    }
+
+    if (mkfifo("fifo7.txt", 0666) == -1 && errno != EEXIST) {
+        perror("mkfifo");
+        return 1;
+    }
+
+    int fd = open("fifo6.txt", O_RDONLY);
+    int fd2 = open("fifo7.txt", O_WRONLY);
+
+    if (fd == -1 || fd2 == -1) {
+        perror("FIFO open");
+        return 1;
+    }
+
+    char str[5000];
+    char result[200];
+
+    printf("Client Started\n");
+
+    while (1) {
+        int len = read_line(fd, str, sizeof(str));
+
+        if (len <= 0 || strcmp(str, "\n") == 0)
+            break;
+
+        int characters = 0, words = 0, lines = 0;
+        int inWord = 0;
+
+        for (int i = 0; str[i] != '\0'; i++) {
+            if (str[i] != '\n')
+                characters++;
+
+            if (str[i] == '\n')
+                lines++;
+
+            if (isspace((unsigned char)str[i])) {
+                inWord = 0;
+            } else if (!inWord) {
+                words++;
+                inWord = 1;
+            }
+        }
+
+        if (len > 0 && str[len - 1] != '\n')
+            lines++;
+
+        FILE *fp = fopen("output.txt", "w");
+
+        if (fp == NULL) {
+            perror("File open");
+            break;
+        }
+
+        fprintf(fp, "Characters: %d, Words: %d, Lines: %d\n",
+                characters, words, lines);
+
+        fclose(fp);
+
+        fp = fopen("output.txt", "r");
+
+        if (fp == NULL) {
+            perror("File open");
+            break;
+        }
+
+        int count = fread(result, 1, sizeof(result) - 1, fp);
+        fclose(fp);
+
+        result[count] = '\0';
+
+        write(fd2, result, count);
+
+        printf("Result saved in output.txt\n");
+    }
+
+    close(fd);
+    close(fd2);
+
+    printf("Client Closed\n");
+
+    return 0;
+}

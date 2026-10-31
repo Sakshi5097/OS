@@ -1,0 +1,151 @@
+
+#!/bin/bash
+
+FILE="addressbook.txt"
+
+# 1. Create Address Book
+createAddressBook()
+{
+    if [ -f "$FILE" ]
+    then
+        echo "Address Book already exists."
+    else
+        touch "$FILE"
+        echo "Address Book created successfully."
+    fi
+}
+
+# 2. View Address Book
+viewRecord()
+{
+    if [ -f "$FILE" ]
+    then
+        echo
+        echo "Address Book Records:"
+        echo "---------------------"
+
+        if [ -s "$FILE" ]
+        then
+            cat "$FILE"
+        else
+            echo "Address Book is empty."
+        fi
+    else
+        echo "Please create Address Book first."
+    fi
+}
+
+# 3. Insert a Record
+insertRecord()
+{
+    if [ ! -f "$FILE" ]
+    then
+        echo "Please create Address Book first."
+        return
+    fi
+
+    echo "Enter Last Name, First Name, Email, Phone Number:"
+    read record
+
+    echo "$record" >> "$FILE"
+
+    echo "Record inserted successfully."
+}
+
+# 4. Delete a Record
+deleteRecord()
+{
+    if [ ! -f "$FILE" ]
+    then
+        echo "Address Book does not exist."
+        return
+    fi
+
+    echo "Enter name or email to search:"
+    read name
+
+    grep -in "$name" "$FILE"
+
+    if [ $? -eq 0 ]
+    then
+        echo "Enter line number of record to delete:"
+        read lineNumber
+
+        if [[ "$lineNumber" =~ ^[0-9]+$ ]] &&
+           [ "$lineNumber" -ge 1 ] &&
+           [ "$lineNumber" -le "$(wc -l < "$FILE")" ]
+        then
+            sed -i "${lineNumber}d" "$FILE"
+            echo "Record deleted successfully."
+        else
+            echo "Invalid line number."
+        fi
+    else
+        echo "No record found."
+    fi
+}
+
+# 5. Modify a Record
+modifyRecord()
+{
+    if [ ! -f "$FILE" ]
+    then
+        echo "Address Book does not exist."
+        return
+    fi
+
+    echo "Enter name or email to search:"
+    read name
+
+    grep -in "$name" "$FILE"
+
+    if [ $? -eq 0 ]
+    then
+        echo "Enter line number of record to modify:"
+        read lineNumber
+
+        if [[ "$lineNumber" =~ ^[0-9]+$ ]] &&
+           [ "$lineNumber" -ge 1 ] &&
+           [ "$lineNumber" -le "$(wc -l < "$FILE")" ]
+        then
+            echo "Enter new record:"
+            read newRecord
+
+            sed -i "${lineNumber}s|.*|${newRecord}|" "$FILE"
+
+            echo "Record modified successfully."
+        else
+            echo "Invalid line number."
+        fi
+    else
+        echo "No record found."
+    fi
+}
+
+# Main Menu
+while true
+do
+    echo
+    echo "====== ADDRESS BOOK ======"
+    echo "1. Create Address Book"
+    echo "2. View Address Book"
+    echo "3. Insert a Record"
+    echo "4. Delete a Record"
+    echo "5. Modify a Record"
+    echo "6. Exit"
+    echo "=========================="
+
+    echo "Enter your choice:"
+    read choice
+
+    case $choice in
+        1) createAddressBook ;;
+        2) viewRecord ;;
+        3) insertRecord ;;
+        4) deleteRecord ;;
+        5) modifyRecord ;;
+        6) echo "Thank you!"
+           exit 0 ;;
+        *) echo "Invalid choice. Please try again." ;;
+    esac
+done

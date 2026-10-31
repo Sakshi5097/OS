@@ -1,0 +1,63 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    int n, head;
+    int i, count = 0;
+    int seek = 0;
+    int distance, min;
+    int current;
+
+    printf("Enter number of disk requests: ");
+    scanf("%d", &n);
+
+    int request[n];
+    int visited[n];
+
+    printf("Enter disk request sequence:\n");
+
+    for (i = 0; i < n; i++) {
+        scanf("%d", &request[i]);
+        visited[i] = 0;
+    }
+
+    printf("Enter initial head position: ");
+    scanf("%d", &head);
+
+    current = head;
+
+    printf("\nSeek Sequence:\n%d", head);
+
+    while (count < n) {
+        min = 999999;
+        int index = -1;
+
+        for (i = 0; i < n; i++) {
+            if (visited[i] == 0) {
+                distance = abs(current - request[i]);
+
+                if (distance < min ||
+                    (distance == min && request[i] > current)) {
+                    min = distance;
+                    index = i;
+                }
+            }
+        }
+
+        if (index == -1)
+            break;
+
+        visited[index] = 1;
+        seek += min;
+        current = request[index];
+        count++;
+
+        printf(" -> %d", current);
+    }
+
+    printf("\n\nTotal Seek Operations = %d\n", seek);
+
+    return 0;
+}

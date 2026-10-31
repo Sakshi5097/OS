@@ -1,0 +1,71 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int read_line(int fd, char *buffer, int size)
+{
+    int i = 0;
+    char ch;
+
+    while (i < size - 1) {
+        int n = read(fd, &ch, 1);
+
+        if (n <= 0)
+            break;
+
+        buffer[i++] = ch;
+
+        if (ch == '\n')
+            break;
+    }
+
+    buffer[i] = '\0';
+    return i;
+}
+
+int main()
+{
+    int fd = open("fifo6.txt", O_WRONLY);
+    int fd2 = open("fifo7.txt", O_RDONLY);
+
+    if (fd == -1 || fd2 == -1) {
+        perror("FIFO open");
+        return 1;
+    }
+
+    char str[5000];
+    char result[5000];
+
+    printf("Server Started\n");
+
+    while (1) {
+        printf("\nEnter a sentence (press ENTER to exit): ");
+
+        if (fgets(str, sizeof(str), stdin) == NULL)
+            break;
+
+        if (strcmp(str, "\n") == 0) {
+            write(fd, str, strlen(str));
+            break;
+        }
+
+        write(fd, str, strlen(str));
+
+        int len = read_line(fd2, result, sizeof(result));
+
+        if (len <= 0)
+            break;
+
+        printf("\nResult received from Client:\n%s", result);
+    }
+
+    close(fd);
+    close(fd2);
+
+    printf("\nServer Closed\n");
+
+    return 0;
+}

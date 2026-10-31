@@ -1,0 +1,143 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+
+void sort(int a[], int n)
+{
+    int i, j, t;
+
+    for (i = 0; i < n - 1; i++) {
+        for (j = 0; j < n - i - 1; j++) {
+            if (a[j] > a[j + 1]) {
+                t = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = t;
+            }
+        }
+    }
+}
+
+int main()
+{
+    int a[100], v[100] = {0};
+    int n, head, size;
+    int i, j, total, d, current;
+
+    printf("Enter number of requests: ");
+    scanf("%d", &n);
+
+    if (n < 1 || n > 100) {
+        printf("Invalid number of requests\n");
+        return 1;
+    }
+
+    printf("Enter requests: ");
+    for (i = 0; i < n; i++) {
+        scanf("%d", &a[i]);
+    }
+
+    printf("Enter head position and disk size: ");
+    scanf("%d%d", &head, &size);
+
+    if (size < 1 || head < 0 || head >= size) {
+        printf("Invalid disk size or head position\n");
+        return 1;
+    }
+
+    for (i = 0; i < n; i++) {
+        if (a[i] < 0 || a[i] >= size) {
+            printf("Invalid request position\n");
+            return 1;
+        }
+    }
+
+    sort(a, n);
+
+    /* SSTF */
+
+    current = head;
+    total = 0;
+
+    printf("\nSSTF: %d", head);
+
+    for (i = 0; i < n; i++) {
+        int min = 999999;
+        int p = -1;
+
+        for (j = 0; j < n; j++) {
+            if (!v[j]) {
+                d = abs(current - a[j]);
+
+                if (d < min || (d == min && a[j] > current)) {
+                    min = d;
+                    p = j;
+                }
+            }
+        }
+
+        v[p] = 1;
+        total += min;
+        current = a[p];
+
+        printf(" -> %d", current);
+    }
+
+    printf("\nMovement = %d\n", total);
+
+    /* SCAN */
+
+    current = head;
+    total = 0;
+
+    printf("\nSCAN: %d", head);
+
+    for (i = 0; i < n; i++) {
+        if (a[i] >= head) {
+            total += abs(current - a[i]);
+            current = a[i];
+            printf(" -> %d", current);
+        }
+    }
+
+    total += abs(current - (size - 1));
+    current = size - 1;
+
+    printf(" -> %d", current);
+
+    for (i = n - 1; i >= 0; i--) {
+        if (a[i] < head) {
+            total += abs(current - a[i]);
+            current = a[i];
+            printf(" -> %d", current);
+        }
+    }
+
+    printf("\nMovement = %d\n", total);
+
+    /* C-LOOK */
+
+    current = head;
+    total = 0;
+
+    printf("\nC-LOOK: %d", head);
+
+    for (i = 0; i < n; i++) {
+        if (a[i] >= head) {
+            total += abs(current - a[i]);
+            current = a[i];
+            printf(" -> %d", current);
+        }
+    }
+
+    for (i = 0; i < n; i++) {
+        if (a[i] < head) {
+            total += abs(current - a[i]);
+            current = a[i];
+            printf(" -> %d", current);
+        }
+    }
+
+    printf("\nMovement = %d\n", total);
+
+    return 0;
+}

@@ -1,0 +1,177 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+void asc(int a[], int sz)
+{
+    int i, j, temp;
+
+    for(i = 0; i < sz; i++)
+    {
+        for(j = i + 1; j < sz; j++)
+        {
+            if(a[i] > a[j])
+            {
+                temp = a[i];
+                a[i] = a[j];
+                a[j] = temp;
+            }
+        }
+    }
+
+    printf("Ascending order: ");
+    for(i = 0; i < sz; i++)
+        printf("%d\t", a[i]);
+
+    printf("\n");
+}
+
+void dsc(int a[], int sz)
+{
+    int i, j, temp;
+
+    for(i = 0; i < sz; i++)
+    {
+        for(j = i + 1; j < sz; j++)
+        {
+            if(a[i] < a[j])
+            {
+                temp = a[i];
+                a[i] = a[j];
+                a[j] = temp;
+            }
+        }
+    }
+
+    printf("Descending order: ");
+    for(i = 0; i < sz; i++)
+        printf("%d\t", a[i]);
+
+    printf("\n");
+}
+
+// Demonstrate Zombie Process
+void zombie()
+{
+    pid_t pid;
+
+    printf("\n--- ZOMBIE PROCESS ---\n");
+
+    pid = fork();
+
+    if(pid == 0)
+    {
+        printf("Child process terminated.\n");
+        fflush(stdout);
+        _exit(0);
+    }
+    else if(pid > 0)
+    {
+        printf("Parent sleeping. Child becomes zombie.\n");
+        printf("Child PID: %d\n", pid);
+        fflush(stdout);
+
+        sleep(10);
+
+        waitpid(pid, NULL, 0);
+        printf("Parent collected child process.\n");
+    }
+    else
+    {
+        perror("Fork failed");
+    }
+}
+
+// Demonstrate Orphan Process
+void orphan()
+{
+    pid_t pid;
+
+    printf("\n--- ORPHAN PROCESS ---\n");
+
+    pid = fork();
+
+    if(pid == 0)
+    {
+        sleep(2);
+
+        printf("Child process is running.\n");
+        printf("Child PID: %d\n", getpid());
+        printf("New Parent PID: %d\n", getppid());
+
+        exit(0);
+    }
+    else if(pid > 0)
+    {
+        printf("Parent process is terminating.\n");
+        fflush(stdout);
+        _exit(0);
+    }
+    else
+    {
+        perror("Fork failed");
+    }
+}
+
+int main()
+{
+    pid_t pid;
+    int *a, sz, i;
+
+    printf("Enter the size of array: ");
+    scanf("%d", &sz);
+
+    if(sz <= 0)
+    {
+        printf("Invalid array size.\n");
+        return 1;
+    }
+
+    a = malloc(sz * sizeof(int));
+
+    if(a == NULL)
+    {
+        printf("Memory allocation failed.\n");
+        return 1;
+    }
+
+    printf("Enter array elements:\n");
+
+    for(i = 0; i < sz; i++)
+    {
+        printf("a[%d]: ", i);
+        scanf("%d", &a[i]);
+    }
+
+    pid = fork();
+
+    switch(pid)
+    {
+        case -1:
+            printf("Error in fork.\n");
+            free(a);
+            return 1;
+
+        case 0:
+            printf("\nChild Process\n");
+            asc(a, sz);
+            free(a);
+            exit(0);
+
+        default:
+            wait(NULL);
+
+            printf("\nParent Process\n");
+            dsc(a, sz);
+
+            free(a);
+
+            zombie();
+            orphan();
+    }
+
+    return 0;
+}
